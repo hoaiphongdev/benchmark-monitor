@@ -1,13 +1,13 @@
 # Node.js Benchmark Service
 
-A high-performance HTTP server built with Node.js and Fastify that provides real-time performance metrics for benchmarking Node.js runtime capabilities.
+A high-performance HTTP server built with Node.js and Express.js that provides real-time performance metrics for benchmarking Node.js runtime capabilities.
 
 ## Features
 
 - RESTful API endpoints for benchmarking and health checking
 - Server-Sent Events (SSE) for real-time metrics streaming
 - Measures latency, memory usage, CPU usage, and throughput
-- Built with Fastify for optimal performance
+- Built with Express.js for optimal performance
 - Written in TypeScript with full type safety
 
 ## Endpoints
@@ -87,9 +87,18 @@ docker build -t node-service .
 docker run -p 8001:8001 node-service
 ```
 
+## Technical Implementation
+
+This service is built with:
+
+- **Express.js** - Fast, unopinionated, minimalist web framework
+- **TypeScript** - For type safety and modern JavaScript features
+- **Server-Sent Events (SSE)** - For real-time data streaming
+- **Node.js core modules** - For CPU and memory metrics
+
 ## Performance Characteristics
 
-The Node.js service with Fastify typically offers:
+The Node.js service with Express.js typically offers:
 - Fast startup time
 - Excellent HTTP request throughput
 - Low memory footprint

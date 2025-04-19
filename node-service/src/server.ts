@@ -1,6 +1,12 @@
-import Fastify from 'fastify';
+import express, { Request, Response } from 'express';
+import cors from 'cors';
 import { performance } from 'node:perf_hooks';
 import os from 'node:os';
+
+// Constants
+const DEFAULT_PORT = 8001;
+const BENCHMARK_ITERATIONS = 1000000;
+const UPDATE_INTERVAL_MS = 1000;
 
 interface BenchmarkResult {
   latency: number;
@@ -12,9 +18,10 @@ interface BenchmarkResult {
 
 // Track previous CPU usage for delta calculation
 let prevCpuInfo = os.cpus();
-const prevCpuTime = process.cpuUsage();
 
-// Function to calculate CPU usage percentage
+/**
+ * Calculate CPU usage percentage based on idle time
+ */
 function getCpuUsagePercent(): number {
   // Calculate system CPU usage
   const currentCpuInfo = os.cpus();
@@ -44,12 +51,15 @@ function getCpuUsagePercent(): number {
   return Math.min(100, Math.max(0, 100 - (totalIdle / totalTick) * 100));
 }
 
+/**
+ * Run benchmark and return performance metrics
+ */
 export function runBenchmark(): BenchmarkResult {
   const startTime = performance.now();
 
   // CPU-intensive task simulation
   let sum = 0;
-  for (let i = 0; i < 1000000; i++) {
+  for (let i = 0; i < BENCHMARK_ITERATIONS; i++) {
     sum += Math.sqrt(i) * Math.log(i + 1);
   }
   console.log('🚀 ~ runBenchmark ~ sum:', sum);
@@ -64,7 +74,7 @@ export function runBenchmark(): BenchmarkResult {
   const cpuUsage = getCpuUsagePercent();
 
   // Calculate simulated throughput (operations per second)
-  const throughput = 1000000 / (latency / 1000);
+  const throughput = BENCHMARK_ITERATIONS / (latency / 1000);
 
   return {
     latency,
@@ -75,70 +85,55 @@ export function runBenchmark(): BenchmarkResult {
   };
 }
 
+/**
+ * Configure and start the Express server
+ */
 async function startServer() {
-  const fastify = Fastify({
-    logger: true,
-  });
+  const app = express();
 
-  // Better CORS handling
-  fastify.addHook('onRequest', (request, reply, done) => {
-    // Set CORS headers
-    reply.header('Access-Control-Allow-Origin', '*');
-    reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    reply.header('Access-Control-Allow-Credentials', 'true');
-
-    // Handle preflight requests
-    if (request.method === 'OPTIONS') {
-      reply.code(204).send();
-      return;
-    }
-
-    done();
-  });
+  // Middleware
+  app.use(express.json());
+  app.use(
+    cors({
+      origin: '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+      credentials: true,
+    }),
+  );
 
   // Health endpoint
-  fastify.get('/health', async () => {
-    return {
+  app.get('/health', (_req: Request, res: Response) => {
+    res.json({
       status: 'ok',
       service: 'node-service',
       timestamp: Date.now(),
-    };
+    });
   });
 
   // Benchmark endpoint (single request)
-  fastify.get('/benchmark', async () => {
-    return runBenchmark();
+  app.get('/benchmark', (_req: Request, res: Response) => {
+    res.json(runBenchmark());
   });
 
   // Server-Sent Events endpoint for real-time metrics
-  fastify.get('/benchmark/stream', async (request, reply) => {
+  app.get('/benchmark/stream', (req: Request, res: Response) => {
     // Set SSE headers
-    reply.raw.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-    });
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
 
     // Disable request timeout
-    request.raw.setTimeout(0);
-
-    // Force immediate response flush
-    reply.raw.flushHeaders();
+    req.socket.setTimeout(0);
 
     // Send initial data
     const sendEvent = () => {
       try {
         const benchmark = runBenchmark();
         const eventData = `data: ${JSON.stringify(benchmark)}\n\n`;
-        reply.raw.write(eventData);
-        // Explicitly flush after each write
-        if (typeof reply.raw.flush === 'function') {
-          reply.raw.flush();
-        }
+        res.write(eventData);
+        // Express doesn't have flush method like Fastify, we rely on standard HTTP behavior
       } catch (error) {
         console.error('Error sending SSE event:', error);
       }
@@ -148,35 +143,24 @@ async function startServer() {
     sendEvent();
 
     // Set up interval to send data every 1 second
-    const interval = setInterval(sendEvent, 1000);
+    const interval = setInterval(sendEvent, UPDATE_INTERVAL_MS);
 
     // Handle client disconnect
-    request.raw.on('close', () => {
+    req.on('close', () => {
       clearInterval(interval);
       console.log('SSE client disconnected');
-    });
-
-    // Handle any errors on the connection
-    reply.raw.on('error', (err) => {
-      console.error('SSE stream error:', err);
-      clearInterval(interval);
-    });
-
-    // Keep connection alive (prevent premature closing)
-    reply.raw.on('end', () => {
-      clearInterval(interval);
-      console.log('SSE stream ended');
     });
   });
 
   // Get port from environment or use default
-  const port = parseInt(process.env.PORT || '8001');
+  const port = parseInt(process.env.PORT || DEFAULT_PORT.toString());
 
   try {
-    await fastify.listen({ port, host: '0.0.0.0' });
-    console.log(`Node.js server running on http://localhost:${port}`);
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Node.js server running on http://localhost:${port}`);
+    });
   } catch (err) {
-    fastify.log.error(err);
+    console.error('Error starting server:', err);
     process.exit(1);
   }
 }
