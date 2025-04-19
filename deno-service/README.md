@@ -62,9 +62,6 @@ deno task dev
 
 # Start the server in production mode
 deno task start
-
-# Run tests
-deno task test
 ```
 
 ## Environment Variables

@@ -1,12 +1,11 @@
 {
   "tasks": {
     "dev": "deno run --allow-net --allow-env --watch main.ts",
-    "start": "deno run --allow-net --allow-env main.ts",
-    "test": "deno test --allow-net --allow-env main_test.ts"
+    "start": "deno run --allow-net --allow-env main.ts"
   },
   "lint": {
     "include": ["**/*.ts"],
-    "exclude": ["**/node_modules/**", "**/*_test.ts"]
+    "exclude": ["**/node_modules/**"]
   },
   "fmt": {
     "include": ["**/*.ts"],

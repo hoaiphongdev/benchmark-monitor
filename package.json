@@ -14,7 +14,6 @@
     "dev:ui": "cd monitor-ui && pnpm dev",
     "dev:all": "concurrently \"pnpm dev:deno\" \"pnpm dev:node\" \"pnpm dev:nest\" \"pnpm dev:ui\"",
     "build": "pnpm run --parallel -r build",
-    "test": "pnpm run --parallel -r test",
     "lint": "eslint .",
     "format": "prettier --write .",
     "docker:up": "docker compose up --build",

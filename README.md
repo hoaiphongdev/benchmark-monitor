@@ -65,21 +65,6 @@ docker-compose up -d
 docker-compose down
 ```
 
-## Running Tests
-
-Each service includes its own tests:
-
-```bash
-# Test Deno service
-cd deno-service && deno task test
-
-# Test Node.js service
-cd node-service && pnpm test
-
-# Test NestJS service
-cd nest-service && pnpm test
-```
-
 ## Performance Metrics
 
 The benchmarking services measure:
