@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benchmark Fetch Test</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        button { padding: 8px 16px; margin: 5px; }
+        pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Benchmark Fetch Test</h1>
+    
+    <div>
+        <h2>Individual Services</h2>
+        <button id="testDeno">Test Deno Service</button>
+        <button id="testNode">Test Node Service</button>
+        <button id="testNest">Test Nest Service</button>
+    </div>
+
+    <div>
+        <h2>All Services</h2>
+        <button id="testAll">Test All Services</button>
+        <button id="startPolling">Start Polling (1s)</button>
+        <button id="stopPolling" disabled>Stop Polling</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        let pollingInterval = null;
+
+        // Test URLs
+        const services = [
+            { name: 'Deno', url: 'http://localhost:8000/benchmark' },
+            { name: 'Node', url: 'http://localhost:8001/benchmark' },
+            { name: 'Nest', url: 'http://localhost:8002/benchmark' }
+        ];
+
+        // Add click handlers
+        document.getElementById('testDeno').addEventListener('click', () => testService(services[0]));
+        document.getElementById('testNode').addEventListener('click', () => testService(services[1]));
+        document.getElementById('testNest').addEventListener('click', () => testService(services[2]));
+        document.getElementById('testAll').addEventListener('click', testAllServices);
+        document.getElementById('startPolling').addEventListener('click', startPolling);
+        document.getElementById('stopPolling').addEventListener('click', stopPolling);
+
+        // Test a single service
+        async function testService(service) {
+            const now = new Date().toLocaleTimeString();
+            log(`<h3>${now} - Testing ${service.name} Service (${service.url})</h3>`);
+
+            try {
+                const response = await fetch(service.url);
+                
+                if (!response.ok) {
+                    log(`<pre class="error">Error: ${response.status} ${response.statusText}</pre>`);
+                    return;
+                }
+
+                const data = await response.json();
+                log(`<pre class="success">${JSON.stringify(data, null, 2)}</pre>`);
+            } catch (error) {
+                log(`<pre class="error">Error: ${error.message}</pre>`);
+                log(`<p>This might be a CORS issue. Check browser console for details.</p>`);
+            }
+        }
+
+        // Test all services
+        async function testAllServices() {
+            const now = new Date().toLocaleTimeString();
+            log(`<h3>${now} - Testing All Services</h3>`);
+
+            for (const service of services) {
+                await testService(service);
+            }
+        }
+
+        // Start polling
+        function startPolling() {
+            if (pollingInterval) return;
+
+            document.getElementById('startPolling').disabled = true;
+            document.getElementById('stopPolling').disabled = false;
+
+            // Test immediately
+            testAllServices();
+
+            // Set up interval
+            pollingInterval = setInterval(testAllServices, 1000);
+            log('<p>Started polling every 1 second</p>');
+        }
+
+        // Stop polling
+        function stopPolling() {
+            if (!pollingInterval) return;
+
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+
+            document.getElementById('startPolling').disabled = false;
+            document.getElementById('stopPolling').disabled = true;
+            
+            log('<p>Stopped polling</p>');
+        }
+
+        // Logger function
+        function log(message) {
+            output.innerHTML = message + output.innerHTML;
+        }
+    </script>
+</body>
+</html> 

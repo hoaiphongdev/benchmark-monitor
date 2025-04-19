@@ -1,0 +1,4 @@
+packages:
+  - 'node-service'
+  - 'nest-service'
+  - 'monitor-ui'
