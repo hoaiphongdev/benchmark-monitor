@@ -233,7 +233,7 @@ function App() {
       </div>
 
       {/* Main metrics grid layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
         {services
           .filter((service) => service.enabled)
           .map((service) => (
@@ -389,7 +389,7 @@ function App() {
       </Card>
 
       <footer className="mt-6 text-center text-xs text-zinc-500">
-        <p>Service Benchmark Dashboard &copy; {new Date().getFullYear()}</p>
+        <p>Service Benchmark Dashboard | Nguyễn Hoài Phong &copy; {new Date().getFullYear()}</p>
       </footer>
     </div>
   );
